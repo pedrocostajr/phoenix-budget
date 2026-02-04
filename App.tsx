@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Client, NotificationLog, PredictionResult } from './types';
-import { INITIAL_CLIENTS } from './constants';
 import { calculatePredictions, getSmartInsights } from './services/geminiService';
 import { loginWithFacebook, fetchAdAccounts, getAdAccountBalance } from './services/metaService';
 import { initGoogleCalendar, signInToGoogle, createCalendarEvent } from './services/calendarService';
+import { fetchClients, createClient, updateClientBalance } from './services/clientService';
 import Dashboard from './components/Dashboard';
 import ClientList from './components/ClientList';
 import AddClientModal from './components/AddClientModal';
@@ -12,7 +11,7 @@ import NotificationHistory from './components/NotificationHistory';
 import AIInsightsPanel from './components/AIInsightsPanel';
 
 const App: React.FC = () => {
-  const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
+  const [clients, setClients] = useState<Client[]>([]);
   const [logs, setLogs] = useState<NotificationLog[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [predictions, setPredictions] = useState<PredictionResult[]>([]);
@@ -20,21 +19,33 @@ const App: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [metaToken, setMetaToken] = useState<string | null>(null);
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
+  const [isLoadingClients, setIsLoadingClients] = useState(true);
 
+  // Carregar clientes do Supabase ao iniciar
   useEffect(() => {
-    const initializeCalendar = async () => {
+    const loadClients = async () => {
+      setIsLoadingClients(true);
+      const data = await fetchClients();
+      setClients(data);
+      setIsLoadingClients(false);
+    };
+
+    // Inicializar integrações
+    const initializeIntegrations = async () => {
       try {
         await initGoogleCalendar();
-        // Check if we already have a token or valid session if possible, 
-        // but for now we rely on explicit connect or efficient re-auth handling in service
       } catch (error) {
         console.error("Failed to initialize Google Calendar", error);
       }
     };
-    initializeCalendar();
+
+    loadClients();
+    initializeIntegrations();
   }, []);
 
   useEffect(() => {
+    if (clients.length === 0) return;
+
     const newPredictions = calculatePredictions(clients);
     setPredictions(newPredictions);
 
@@ -63,6 +74,10 @@ const App: React.FC = () => {
     const syncedClients = await Promise.all(clients.map(async (client) => {
       if (client.metaAccountId && client.isSynced) {
         const realBalance = await getAdAccountBalance(client.metaAccountId, metaToken);
+        // Atualiza no banco também
+        if (realBalance !== client.currentBalance) {
+          await updateClientBalance(client.id, realBalance);
+        }
         return { ...client, currentBalance: realBalance, lastUpdated: new Date().toISOString() };
       }
       return client;
@@ -148,14 +163,31 @@ const App: React.FC = () => {
     setIsAnalyzing(false);
   };
 
-  const handleAddClient = (newClient: Client) => {
-    setClients(prev => [...prev, newClient]);
-    setIsModalOpen(false);
+  const handleAddClient = async (newClient: Client) => {
+    try {
+      // Salva no Supabase e recebe o objeto com ID gerado
+      const createdClient = await createClient(newClient);
+      setClients(prev => [...prev, createdClient as Client]);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Erro ao criar cliente:", error);
+      alert("Erro ao salvar cliente no banco de dados.");
+    }
   };
 
-  const handleUpdateBalance = (id: string, newBalance: number) => {
-    setClients(prev => prev.map(c => c.id === id ? { ...c, currentBalance: newBalance, lastUpdated: new Date().toISOString(), isSynced: false } : c));
+  const handleUpdateBalance = async (id: string, newBalance: number) => {
+    try {
+      await updateClientBalance(id, newBalance);
+      setClients(prev => prev.map(c => c.id === id ? { ...c, currentBalance: newBalance, lastUpdated: new Date().toISOString(), isSynced: false } : c));
+    } catch (error) {
+      console.error("Erro ao atualizar saldo:", error);
+      alert("Erro ao atualizar saldo no banco de dados.");
+    }
   };
+
+  if (isLoadingClients) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">Carregando dados...</div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row overflow-hidden bg-slate-50">
