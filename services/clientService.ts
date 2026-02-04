@@ -12,8 +12,9 @@ export const fetchClients = async (): Promise<Client[]> => {
         return [];
     }
 
+
     // Transformation map to match frontend types if snake_case is used in DB
-    return data.map((d: any) => ({
+    return (data || []).map((d: any) => ({
         id: d.id,
         name: d.name,
         company: d.company,
@@ -26,6 +27,7 @@ export const fetchClients = async (): Promise<Client[]> => {
         isSynced: d.is_synced
     }));
 };
+
 
 export const createClient = async (client: Omit<Client, 'id'>) => {
     const dbClient = {

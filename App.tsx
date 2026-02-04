@@ -25,9 +25,15 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadClients = async () => {
       setIsLoadingClients(true);
-      const data = await fetchClients();
-      setClients(data);
-      setIsLoadingClients(false);
+      try {
+        const data = await fetchClients();
+        setClients(data);
+      } catch (error) {
+        console.error("Failed to load clients:", error);
+        // We could set an error state here if we want to show a UI message
+      } finally {
+        setIsLoadingClients(false);
+      }
     };
 
     // Inicializar integrações
