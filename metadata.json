@@ -1,0 +1,5 @@
+{
+  "name": "TrafficBalance AI - Gestor de Orçamento de Tráfego Pago",
+  "description": "Um dashboard inteligente para gerenciar saldos de tráfego pago de clientes, prever datas de esgotamento e automatizar notificações de reposição via análise do Gemini.",
+  "requestFramePermissions": []
+}
