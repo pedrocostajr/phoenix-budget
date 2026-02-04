@@ -21,7 +21,7 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
     "@types/gapi": "^0.0.47",
-    "@types/gapi.calendar": "^3.0.60",
-    "@types/gapi.auth2": "^0.0.60"
+    "@types/gapi.calendar": "*",
+    "@types/gapi.auth2": "*"
   }
 }
