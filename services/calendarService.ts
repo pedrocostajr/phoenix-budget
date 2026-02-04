@@ -1,4 +1,5 @@
-import { gapi } from 'gapi-script';
+/// <reference types="vite/client" />
+declare const gapi: any;
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -8,6 +9,34 @@ const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 let tokenClient: any;
 let isInitialized = false;
 
+const loadGapiScript = (): Promise<void> => {
+  return new Promise((resolve) => {
+    if ((window as any).gapi) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://apis.google.com/js/api.js';
+    script.onload = () => resolve();
+    script.onerror = () => console.error('Failed to load gapi script');
+    document.body.appendChild(script);
+  });
+};
+
+const loadGisScript = (): Promise<void> => {
+  return new Promise((resolve) => {
+    if ((window as any).google) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.onload = () => resolve();
+    script.onerror = () => console.error('Failed to load GIS script');
+    document.body.appendChild(script);
+  });
+};
+
 export const initGoogleCalendar = async (): Promise<void> => {
   if (isInitialized) return;
 
@@ -16,13 +45,15 @@ export const initGoogleCalendar = async (): Promise<void> => {
     return;
   }
 
+  await Promise.all([loadGapiScript(), loadGisScript()]);
+
   return new Promise((resolve) => {
     gapi.load('client', async () => {
       await gapi.client.init({
         apiKey: API_KEY,
         discoveryDocs: [DISCOVERY_DOC],
       });
-      
+
       // Initialize Identity Services Client
       tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
