@@ -1,20 +1,14 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# TrafficBalance AI
 
-# Run and deploy your AI Studio app
+Dashboard de gestão de orçamento para mídia paga construído em React 19 com Tailwind CSS.
 
-This contains everything you need to run your app locally.
+## Integrações
+- Meta Ads (via Graph API)
+- Google Calendar (via Google Identity Services)
+- Supabase (Database)
+- Gemini AI (Insights)
 
-View your app in AI Studio: https://ai.studio/apps/drive/1VISCyueNsDy9zrn27gDYAjUWDDzrdEGG
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Status
+- **Google Calendar**: Implementado (Manual Script Loading)
+- **Supabase**: Configurado
+- **Build**: Vite + React
