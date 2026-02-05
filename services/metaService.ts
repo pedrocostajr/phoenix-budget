@@ -13,11 +13,11 @@ export interface MetaAdAccount {
   account_status: number;
 }
 
-const META_APP_ID = 'SEU_APP_ID_AQUI'; // Substitua pelo seu App ID do Meta
+const META_APP_ID = import.meta.env.VITE_META_APP_ID;
 
 export const initMetaSDK = () => {
   return new Promise((resolve) => {
-    (window as any).fbAsyncInit = function() {
+    (window as any).fbAsyncInit = function () {
       FB.init({
         appId: META_APP_ID,
         cookie: true,
