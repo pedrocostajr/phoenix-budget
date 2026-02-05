@@ -45,24 +45,34 @@ export const initGoogleCalendar = async (): Promise<void> => {
     return;
   }
 
+  if (!API_KEY) {
+    console.warn('Google API Key not found in environment variables.');
+    return;
+  }
+
   await Promise.all([loadGapiScript(), loadGisScript()]);
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     gapi.load('client', async () => {
-      await gapi.client.init({
-        apiKey: API_KEY,
-        discoveryDocs: [DISCOVERY_DOC],
-      });
+      try {
+        await gapi.client.init({
+          apiKey: API_KEY,
+          discoveryDocs: [DISCOVERY_DOC],
+        });
 
-      // Initialize Identity Services Client
-      tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: '', // defined at request time
-      });
+        // Initialize Identity Services Client
+        tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          callback: '', // defined at request time
+        });
 
-      isInitialized = true;
-      resolve();
+        isInitialized = true;
+        resolve();
+      } catch (error) {
+        // Reject the promise so App.tsx can catch it
+        reject(error);
+      }
     });
   });
 };
