@@ -77,10 +77,20 @@ export const initGoogleCalendar = async (): Promise<void> => {
   });
 };
 
-export const signInToGoogle = (): Promise<void> => {
+export const signInToGoogle = async (): Promise<void> => {
+  if (!tokenClient) {
+    try {
+      console.log('Token client missing, attempting to initialize...');
+      await initGoogleCalendar();
+    } catch (error) {
+      console.error('Initialization failed during sign-in attempt:', error);
+      throw error;
+    }
+  }
+
   return new Promise((resolve, reject) => {
     if (!tokenClient) {
-      reject('Google Calendar API not initialized');
+      reject(new Error('Google Calendar API could not be initialized. Check your API Key and Network.'));
       return;
     }
 

@@ -132,9 +132,17 @@ const App: React.FC = () => {
       await signInToGoogle();
       setIsCalendarConnected(true);
       alert('Google Calendar conectado com sucesso!');
-    } catch (error) {
-      console.error(error);
-      alert('Erro ao conectar Google Calendar: ' + JSON.stringify(error));
+    } catch (error: any) {
+      console.error("Calendar Connection Error:", error);
+      let msg = 'Erro ao conectar Google Calendar.';
+      if (error?.result?.error?.message) {
+        msg += ` Detalhe: ${error.result.error.message}`;
+      } else if (error?.message) {
+        msg += ` Detalhe: ${error.message}`;
+      } else {
+        msg += ` Detalhe: ${JSON.stringify(error)}`;
+      }
+      alert(msg);
     }
   };
 
