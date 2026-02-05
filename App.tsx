@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Session } from '@supabase/supabase-js'; // Import Session type
+import { supabase } from './services/supabaseClient'; // Import supabase client
+import Login from './components/Login'; // Import Login component
 import { Client, NotificationLog, PredictionResult } from './types';
 import { calculatePredictions, getSmartInsights } from './services/geminiService';
 import { loginWithFacebook, fetchAdAccounts, getAdAccountBalance } from './services/metaService';
@@ -11,6 +14,7 @@ import NotificationHistory from './components/NotificationHistory';
 import AIInsightsPanel from './components/AIInsightsPanel';
 
 const App: React.FC = () => {
+  const [session, setSession] = useState<Session | null>(null); // Auth state
   const [clients, setClients] = useState<Client[]>([]);
   const [logs, setLogs] = useState<NotificationLog[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,8 +25,25 @@ const App: React.FC = () => {
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [isLoadingClients, setIsLoadingClients] = useState(true);
 
-  // Carregar clientes do Supabase ao iniciar
+  // Check auth state on load
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Carregar clientes do Supabase ao iniciar (se logado)
+  useEffect(() => {
+    if (!session) return; // Only load if logged in
+
     const loadClients = async () => {
       setIsLoadingClients(true);
       try {
@@ -47,7 +68,12 @@ const App: React.FC = () => {
 
     loadClients();
     initializeIntegrations();
-  }, []);
+  }, [session]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
 
   useEffect(() => {
     if (clients.length === 0) return;
@@ -108,7 +134,7 @@ const App: React.FC = () => {
       alert('Google Calendar conectado com sucesso!');
     } catch (error) {
       console.error(error);
-      alert('Erro ao conectar Google Calendar.');
+      alert('Erro ao conectar Google Calendar: ' + JSON.stringify(error));
     }
   };
 
@@ -177,7 +203,7 @@ const App: React.FC = () => {
       setIsModalOpen(false);
     } catch (error) {
       console.error("Erro ao criar cliente:", error);
-      alert("Erro ao salvar cliente no banco de dados.");
+      alert("Erro ao salvar cliente no banco de dados. Verifique a tabela 'clients'.");
     }
   };
 
@@ -190,6 +216,10 @@ const App: React.FC = () => {
       alert("Erro ao atualizar saldo no banco de dados.");
     }
   };
+
+  if (!session) {
+    return <Login />;
+  }
 
   if (isLoadingClients) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">Carregando dados...</div>;
@@ -238,9 +268,16 @@ const App: React.FC = () => {
               Análise com IA
             </button>
           </li>
+          <li>
+            <button onClick={handleSignOut} className="w-full flex items-center gap-3 text-red-300 hover:text-red-100 p-3 rounded-xl hover:bg-red-900/40 transition-colors mt-4">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+              Sair
+            </button>
+          </li>
         </ul>
 
         <div className="pt-6 border-t border-slate-800">
+
           <div className="bg-slate-800 p-4 rounded-xl">
             <h3 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-widest">Integrações Ativas</h3>
             <div className="space-y-2">
