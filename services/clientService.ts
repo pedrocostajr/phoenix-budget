@@ -72,3 +72,47 @@ export const updateClientBalance = async (id: string, newBalance: number) => {
         throw error;
     }
 };
+
+export const processDailySettlements = async (clients: Client[]): Promise<Client[]> => {
+    const updatedClients = [...clients];
+    const now = new Date();
+    // Start of today (00:00:00)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+    for (let i = 0; i < updatedClients.length; i++) {
+        const client = updatedClients[i];
+
+        // Skip if client is synced via API (balance is real-time)
+        if (client.isSynced) continue;
+
+        const lastUpdateDate = new Date(client.lastUpdated);
+        // Start of the last update day (00:00:00)
+        const lastUpdateStart = new Date(lastUpdateDate.getFullYear(), lastUpdateDate.getMonth(), lastUpdateDate.getDate()).getTime();
+
+        const diffTime = todayStart - lastUpdateStart;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 0) {
+            const deduction = client.dailySpend * diffDays;
+            const newBalance = client.currentBalance - deduction;
+
+            console.log(`[Auto-Settlement] Client: ${client.company}, Days since last update: ${diffDays}, Deduction: ${deduction}, New Balance: ${newBalance}`);
+
+            try {
+                // Update in DB
+                await updateClientBalance(client.id, newBalance);
+
+                // Update in local array
+                updatedClients[i] = {
+                    ...client,
+                    currentBalance: newBalance,
+                    lastUpdated: new Date().toISOString()
+                };
+            } catch (error) {
+                console.error(`Failed to auto-settle client ${client.company}:`, error);
+            }
+        }
+    }
+
+    return updatedClients;
+};

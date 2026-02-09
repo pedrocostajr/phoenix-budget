@@ -6,7 +6,7 @@ import { Client, NotificationLog, PredictionResult } from './types';
 import { calculatePredictions, getSmartInsights } from './services/geminiService';
 import { loginWithFacebook, fetchAdAccounts, getAdAccountBalance } from './services/metaService';
 import { initGoogleCalendar, signInToGoogle, createCalendarEvent } from './services/calendarService';
-import { fetchClients, createClient, updateClientBalance } from './services/clientService';
+import { fetchClients, createClient, updateClientBalance, processDailySettlements } from './services/clientService';
 import Dashboard from './components/Dashboard';
 import ClientList from './components/ClientList';
 import AddClientModal from './components/AddClientModal';
@@ -48,7 +48,8 @@ const App: React.FC = () => {
       setIsLoadingClients(true);
       try {
         const data = await fetchClients();
-        setClients(data);
+        const processedData = await processDailySettlements(data);
+        setClients(processedData);
       } catch (error) {
         console.error("Failed to load clients:", error);
         // We could set an error state here if we want to show a UI message
